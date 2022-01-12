@@ -1,0 +1,62 @@
+syntax = "proto3";
+package cars.v1;
+option go_package = "github.com/charlesonunze/a99/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "validate/validate.proto";
+
+service CarService {
+  // Add a new car
+  rpc RegisterCar(RegisterCarRequest) returns (CarResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/cars"
+      body: "*"
+    };
+  }
+
+  // Get a single car resource with the given ID
+  rpc GetCarByID(GetCarRequest) returns (CarResponse) {
+    option (google.api.http).get = "/api/v1/cars/{id}";
+  }
+
+  // List all cars
+  rpc ListCars(ListCarsRequest) returns (CarsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/cars"
+    };
+  }
+}
+
+message RegisterCarRequest {
+  string type = 1 [(validate.rules).string = { in: ["Sedan", "Van", "Suv", "motor-bike"] }];
+  string name = 2 [(validate.rules).string = { min_len: 3 }];
+  string color = 3 [(validate.rules).string = { in: ["red", "green", "blue"] }];
+  int32 speed_range = 4 [(validate.rules).int32 = { gte: 0, lte: 240 }];
+  repeated string features = 5 [(validate.rules).repeated.items.string = {
+    in: ["sunroof", "panorama", "auto-parking", "surround-system"]
+  }];
+}
+
+message GetCarRequest {
+  string id = 1 [(validate.rules).string.uuid = true];
+};
+
+message ListCarsRequest {
+	string type = 1 [(validate.rules).string = { in: ["Sedan", "Van", "Suv", "motor-bike"], ignore_empty: true }];
+  string color = 2 [(validate.rules).string = { in: ["red", "green", "blue"], ignore_empty: true }];
+  string name = 3 [(validate.rules).string = { ignore_empty: true }];
+  int32 speed_range = 4 [(validate.rules).int32 = { gte: 0, lte: 240, ignore_empty: true }];
+}
+
+message CarResponse {
+  string type = 1;
+  string name = 2;
+  string color = 3;
+  int32 speed_range = 4;
+  repeated string features = 5;
+}
+
+message CarsResponse {
+  repeated CarResponse cars = 1;
+}
