@@ -6,6 +6,7 @@ import (
 	"github.com/charlesonunze/a99/internal/model"
 	"github.com/charlesonunze/a99/internal/repo"
 	"github.com/charlesonunze/a99/internal/service"
+	"github.com/charlesonunze/a99/internal/transform"
 	"github.com/charlesonunze/a99/pb"
 	"gorm.io/gorm"
 )
@@ -30,30 +31,16 @@ func (s *server) RegisterCar(ctx context.Context, req *pb.RegisterCarRequest) (*
 		return nil, err
 	}
 
-	var features []model.Feature
-
-	for _, f := range req.Features {
-		features = append(features, model.Feature{
-			Name: f,
-		})
-	}
-
 	svc := s.GetService()
 	car, err := svc.RegisterCar(ctx, model.Car{
 		CarType:    req.Type,
 		Name:       req.Name,
 		Color:      req.Color,
 		SpeedRange: req.SpeedRange,
-		Features:   features,
+		Features:   transform.MapToFeaturesArray(req.Features),
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	var stringArr []string
-
-	for _, f := range car.Features {
-		stringArr = append(stringArr, f.Name)
 	}
 
 	return &pb.CarResponse{
@@ -61,7 +48,7 @@ func (s *server) RegisterCar(ctx context.Context, req *pb.RegisterCarRequest) (*
 		Name:       car.Name,
 		Color:      car.Color,
 		SpeedRange: car.SpeedRange,
-		Features:   stringArr,
+		Features:   transform.MapFeaturesToStringArray(car.Features),
 	}, nil
 }
 
