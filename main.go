@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/charlesonunze/a99/internal/handler"
 	"github.com/charlesonunze/a99/internal/model"
@@ -15,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/charlesonunze/a99/pb"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -64,9 +66,33 @@ func main() {
 
 	gwServer := &http.Server{
 		Addr:    G8WAY_PORT,
-		Handler: gwmux,
+		Handler: cors(gwmux),
 	}
 
 	log.Println("Serving gRPC-Gateway on", G8WAY_PORT)
 	log.Fatalln(gwServer.ListenAndServe())
+}
+
+func allowedOrigin(origin string) bool {
+	if viper.GetString("cors") == "*" {
+		return true
+	}
+	if matched, _ := regexp.MatchString(viper.GetString("cors"), origin); matched {
+		return true
+	}
+	return false
+}
+
+func cors(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if allowedOrigin(r.Header.Get("Origin")) {
+			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, ResponseType")
+		}
+		if r.Method == "OPTIONS" {
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
 }
