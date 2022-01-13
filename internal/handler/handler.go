@@ -58,12 +58,20 @@ func (s *server) GetCarByID(ctx context.Context, req *pb.GetCarRequest) (*pb.Car
 		return nil, err
 	}
 
+	carID := req.Id
+
+	svc := s.GetService()
+	car, err := svc.FetchCar(ctx, carID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.CarResponse{
-		Type:       "Sedan",
-		Name:       "Lucid Air",
-		Color:      "blue",
-		SpeedRange: 1,
-		Features:   []string{"better than tesla"},
+		Type:       car.CarType,
+		Name:       car.Name,
+		Color:      car.Color,
+		SpeedRange: car.SpeedRange,
+		Features:   transform.MapFeaturesToStringArray(car.Features),
 	}, nil
 }
 
@@ -73,15 +81,18 @@ func (s *server) ListCars(ctx context.Context, req *pb.ListCarsRequest) (*pb.Car
 		return nil, err
 	}
 
+	query := model.Car{
+		CarType: req.Type,
+		Color:   req.Color,
+	}
+
+	svc := s.GetService()
+	cars, err := svc.FetchCars(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.CarsResponse{
-		Cars: []*pb.CarResponse{
-			{
-				Type:       "Sedan",
-				Name:       "Lucid Air",
-				Color:      "blue",
-				SpeedRange: 1,
-				Features:   []string{"better than tesla"},
-			},
-		},
+		Cars: transform.MapCarsToResponseArray(cars),
 	}, nil
 }
