@@ -8,8 +8,11 @@ import (
 	"os"
 
 	"github.com/charlesonunze/a99/internal/handler"
+	"github.com/charlesonunze/a99/internal/model"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/charlesonunze/a99/pb"
 )
@@ -24,8 +27,15 @@ func main() {
 		log.Fatalln("Failed to listen:", err)
 	}
 
+	db, err := gorm.Open(postgres.Open(os.Getenv("DB_URI")))
+	if err != nil {
+		log.Fatalln("Failed to connect to DB:", err)
+	}
+
+	db.AutoMigrate(&model.Car{}, &model.Feature{})
+
 	s := grpc.NewServer()
-	server := handler.New()
+	server := handler.New(db)
 	pb.RegisterCarServiceServer(s, server)
 
 	// Serve gRPC server
